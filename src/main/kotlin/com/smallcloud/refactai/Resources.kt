@@ -12,7 +12,7 @@ import javax.swing.Icon
 import javax.swing.UIManager
 
 
-fun getThisPlugin() = PluginManager.getPlugins().find { it.name == "Refact.ai" }
+fun getThisPlugin() = PluginManager.getPlugins().find { it.name == "CodeAlive" }
 
 private fun getHomePath(): File {
     return getThisPlugin()!!.pluginPath.toFile()
@@ -60,7 +60,7 @@ private fun getBinPrefix(): String {
 object Resources {
     val binPrefix: String = getBinPrefix()
 
-    const val defaultCloudAuthLink: String = "https://refact.smallcloud.ai/authentication?token=%s&utm_source=plugin&utm_medium=jetbrains&utm_campaign=login"
+    const val defaultCloudAuthLink: String = "https://codealive.smallcloud.ai/authentication?token=%s&utm_source=plugin&utm_medium=jetbrains&utm_campaign=login"
     val defaultCloudUrl: URI = URI("https://www.smallcloud.ai")
     val defaultCodeCompletionUrlSuffix = URI("v1/code-completion")
     val cloudUserMessage: URI = defaultCloudUrl.resolve("/v1/user-message")
@@ -68,11 +68,11 @@ object Resources {
     val defaultSnippetAcceptedUrlSuffix: URI = URI("v1/snippet-accepted")
     val version: String = getVersion()
     const val client: String = "jetbrains"
-    const val titleStr: String = "Refact.ai"
+    const val titleStr: String = "CodeAlive"
     val pluginId: PluginId = getPluginId()
     val jbBuildVersion: String = ApplicationInfo.getInstance().build.toString()
-    const val refactAIRootSettingsID = "refactai_root"
-    const val refactAIAdvancedSettingsID = "refactai_advanced_settings"
+    const val refactAIRootSettingsID = "codealive_root"
+    const val refactAIAdvancedSettingsID = "codealive_advanced_settings"
 
     object Icons {
         private fun brushForTheme(icon: Icon): Icon {
@@ -87,10 +87,10 @@ object Resources {
             return brushForTheme(IconLoader.getIcon(path, Resources::class.java))
         }
 
-        val LOGO_RED_12x12: Icon = IconLoader.getIcon("/icons/refactai_logo_red_12x12.svg", Resources::class.java)
-        val LOGO_RED_13x13: Icon = IconLoader.getIcon("/icons/refactai_logo_red_13x13.svg", Resources::class.java)
-        val LOGO_12x12: Icon = makeIcon("/icons/refactai_logo_12x12.svg")
-        val LOGO_RED_16x16: Icon = IconLoader.getIcon("/icons/refactai_logo_red_16x16.svg", Resources::class.java)
+        val LOGO_RED_12x12: Icon = IconLoader.getIcon("/icons/codealive_logo_red_12x12.svg", Resources::class.java)
+        val LOGO_RED_13x13: Icon = IconLoader.getIcon("/icons/codealive_logo_red_13x13.svg", Resources::class.java)
+        val LOGO_12x12: Icon = makeIcon("/icons/codealive_logo_12x12.svg")
+        val LOGO_RED_16x16: Icon = IconLoader.getIcon("/icons/codealive_logo_red_16x16.svg", Resources::class.java)
 
         val COIN_16x16: Icon = makeIcon("/icons/coin_16x16.svg")
         val HAND_12x12: Icon = makeIcon("/icons/hand_12x12.svg")
