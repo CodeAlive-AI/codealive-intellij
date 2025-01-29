@@ -102,6 +102,9 @@ fun runCommand(cmd: String): String {
 }
 
 fun getVersionString(baseVersion: String): String {
+
+    return baseVersion
+
     val tag = runCommand("git tag -l --points-at HEAD")
 
     if (System.getenv("PUBLISH_EAP") != "1" &&
