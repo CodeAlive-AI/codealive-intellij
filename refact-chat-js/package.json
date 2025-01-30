@@ -31,6 +31,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && vite build -c vite.node.config.ts",
+    "build_dev": "tsc && vite build --minify false && vite build -c vite.node.config.ts --minify false",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",

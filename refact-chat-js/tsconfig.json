@@ -14,6 +14,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+
+    /* Enable source maps */
+    "sourceMap": true,
+    "inlineSources": true,
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
