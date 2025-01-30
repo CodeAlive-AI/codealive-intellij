@@ -40,11 +40,7 @@ import com.smallcloud.refactai.statistic.UsageStats.Companion.instance as UsageS
 private const val STREAMING_PREFIX = "data: "
 
 class AsyncConnection : Disposable {
-    private val client: CloseableHttpAsyncClient = HttpAsyncClients.customHttp2()
-        .setTlsStrategy(ClientTlsStrategyBuilder.create()
-            .setSslContext(SSLContexts.custom().loadTrustMaterial(TrustSelfSignedStrategy()).build())
-            .setTlsVersions(TLS.V_1_3, TLS.V_1_2)
-            .build())
+    private val client: CloseableHttpAsyncClient = HttpAsyncClients.custom()
         .setRetryStrategy(DefaultHttpRequestRetryStrategy(5, TimeValue.ofMilliseconds(50)))
         .evictIdleConnections(TimeValue.ofSeconds(10))
         .setIOReactorConfig(
