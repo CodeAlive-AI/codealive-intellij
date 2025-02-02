@@ -15,6 +15,7 @@ import com.intellij.openapi.util.io.FileUtil.setExecutable
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.messages.MessageBus
 import com.intellij.util.messages.Topic
+import com.smallcloud.refactai.CodeAliveProps
 import com.smallcloud.refactai.Resources
 import com.smallcloud.refactai.Resources.binPrefix
 import com.smallcloud.refactai.account.AccountManagerChangedNotifier
@@ -174,6 +175,10 @@ class LSPProcessHolder(val project: Project) : Disposable {
 
     private fun startProcess() {
         val address = if (InferenceGlobalContext.inferenceUri == null) "Refact" else InferenceGlobalContext.inferenceUri
+        if (address == "Refact") {
+            logger.debug("Address is not set yet")
+            return
+        }
         val newConfig = LSPConfig(
             address = address,
             apiKey = AccountManager.apiKey,
@@ -196,42 +201,46 @@ class LSPProcessHolder(val project: Project) : Disposable {
         terminate()
         if (!newConfig.isValid) return
         var attempt = 0
-        while (attempt < 5) {
-            try {
-                if (BIN_PATH == null) {
-                    attempt = 0 // wait for initialize()
-                    logger.warn("LSP start_process BIN_PATH is null; waiting...")
-                    Thread.sleep(1000)
-                    continue
+        if (!CodeAliveProps.isCodeAlive) {
+            while (attempt < 5) {
+                try {
+                    if (BIN_PATH == null) {
+                        attempt = 0 // wait for initialize()
+                        logger.warn("LSP start_process BIN_PATH is null; waiting...")
+                        Thread.sleep(1000)
+                        continue
+                    }
+                    newConfig.port = (32000..32199).random()
+                    logger.warn("LSP start_process " + BIN_PATH + " " + newConfig.toArgs())
+                    process = GeneralCommandLine(listOf(BIN_PATH) + newConfig.toArgs()).withRedirectErrorStream(true)
+                        .createProcess()
+                    process!!.waitFor(5, TimeUnit.SECONDS)
+                    lastConfig = newConfig
+                    break
+                } catch (e: Exception) {
+                    attempt++
+                    logger.warn("LSP start_process didn't start attempt=${attempt}")
+                    if (attempt == 5) {
+                        throw e
+                    }
                 }
-                newConfig.port = (32000..32199).random()
-                logger.warn("LSP start_process " + BIN_PATH + " " + newConfig.toArgs())
-                process = GeneralCommandLine(listOf(BIN_PATH) + newConfig.toArgs()).withRedirectErrorStream(true)
-                    .createProcess()
-                process!!.waitFor(5, TimeUnit.SECONDS)
-                lastConfig = newConfig
-                break
-            } catch (e: Exception) {
-                attempt++
-                logger.warn("LSP start_process didn't start attempt=${attempt}")
-                if (attempt == 5) {
-                    throw e
+            }
+            loggerTask = loggerScheduler.submit {
+                val reader = process!!.inputStream.bufferedReader()
+                var line = reader.readLine()
+                while (line != null) {
+                    logger.warn("\n$line")
+                    line = reader.readLine()
+                }
+            }
+            process!!.onExit().thenAcceptAsync { process1 ->
+                if (process1.exitValue() != 0) {
+                    logger.warn(
+                        "LSP bad_things_happened " + process1.inputStream.bufferedReader().use { it.readText() })
                 }
             }
         }
-        loggerTask = loggerScheduler.submit {
-            val reader = process!!.inputStream.bufferedReader()
-            var line = reader.readLine()
-            while (line != null) {
-                logger.warn("\n$line")
-                line = reader.readLine()
-            }
-        }
-        process!!.onExit().thenAcceptAsync { process1 ->
-            if (process1.exitValue() != 0) {
-                logger.warn("LSP bad_things_happened " + process1.inputStream.bufferedReader().use { it.readText() })
-            }
-        }
+
         attempt = 0
         while (attempt < 5) {
             try {
@@ -323,6 +332,9 @@ class LSPProcessHolder(val project: Project) : Disposable {
 
     val url: URI
         get() {
+            if (CodeAliveProps.isCodeAlive) {
+                return URI(InferenceGlobalContext.inferenceUri ?: "")
+            }
             val port = InferenceGlobalContext.xDebugLSPPort ?: lastConfig?.port ?: return URI("")
 
             return URI("http://127.0.0.1:${port}/")
