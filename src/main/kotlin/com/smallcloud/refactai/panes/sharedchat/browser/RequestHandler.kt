@@ -126,7 +126,7 @@ class RefactChatResourceHandler : CefResourceHandler, DumbAware {
     ): Boolean {
         val url = cefRequest.url
         return if (url != null) {
-            val pathToResource = url.replace("http://refactai/", "webview/")
+            val pathToResource = url.replace("http://codealive/", "webview/")
             val newUrl = javaClass.classLoader.getResource(pathToResource)
             state = OpenedConnection(newUrl?.openConnection())
             currentUrl = url

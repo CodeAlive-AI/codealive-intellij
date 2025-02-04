@@ -111,7 +111,7 @@ class ChatWebView(val editor: Editor, val messageHandler: (event: Events.FromCha
         val browser = JBCefBrowser
             .createBuilder()
             .setEnableOpenDevToolsMenuItem(true)
-            .setUrl("http://refactai/index.html")
+            .setUrl("http://codealive/index.html")
             // change this to enable dev tools
             // setting to false prevents "Accept diff with tab": fixed with onTabHandler
             // setting to true causes slow scroll issues :/
@@ -187,14 +187,14 @@ class ChatWebView(val editor: Editor, val messageHandler: (event: Events.FromCha
             }, browser.cefBrowser)
         }
 
-        CefApp.getInstance().registerSchemeHandlerFactory("http", "refactai", RequestHandlerFactory())
+        CefApp.getInstance().registerSchemeHandlerFactory("http", "codealive", RequestHandlerFactory())
 
         val myJSQueryOpenInBrowser = JBCefJSQuery.create((browser as JBCefBrowserBase?)!!)
         addMessageHandler(myJSQueryOpenInBrowser)
 
         val myJSQueryOpenInBrowserRedirectHyperlink = JBCefJSQuery.create((browser as JBCefBrowserBase?)!!)
         myJSQueryOpenInBrowserRedirectHyperlink.addHandler { href ->
-            if (href.isNotEmpty() && !href.contains("#") && !href.equals("http://refactai/index.html")) {
+            if (href.isNotEmpty() && !href.contains("#") && !href.equals("http://codealive/index.html")) {
                 BrowserUtil.browse(href)
             }
             null
@@ -264,7 +264,7 @@ class ChatWebView(val editor: Editor, val messageHandler: (event: Events.FromCha
                     
                     const script = document.createElement("script");
                     script.onload = loadChatJs;
-                    script.src = "http://refactai/dist/chat/index.umd.cjs";
+                    script.src = "http://codealive/dist/chat/index.umd.cjs";
                     document.head.appendChild(script);
                     """.trimIndent()
                 println(script)
