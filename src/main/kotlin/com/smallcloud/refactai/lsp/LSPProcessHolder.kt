@@ -46,6 +46,7 @@ private fun getExeSuffix(): String {
 interface LSPProcessHolderChangedNotifier {
     fun capabilitiesChanged(newCaps: LSPCapabilities) {}
     fun lspIsActive(isActive: Boolean) {}
+    fun ragStatusChanged(ragStatus: RagStatus) {}
 
     companion object {
         val TOPIC = Topic.create(
@@ -64,7 +65,11 @@ class LSPProcessHolder(val project: Project) : Disposable {
     private val messageBus: MessageBus = ApplicationManager.getApplication().messageBus
     private var isWorking_ = false
     private val healthCheckerScheduler = AppExecutorUtil.createBoundedScheduledExecutorService(
-        "SMCLSHealthCheckerScheduler", 1
+        "SMCLSPHealthCheckerScheduler", 1
+    )
+    private var ragStatusCache: RagStatus? = null
+    private val ragStatusCheckerScheduler = AppExecutorUtil.createBoundedScheduledExecutorService(
+        "SMCLSPRagStatusCheckerScheduler", 1
     )
 
     private val exitThread: Thread = Thread {
@@ -151,6 +156,7 @@ class LSPProcessHolder(val project: Project) : Disposable {
                 startProcess()
             }
         }, 1, 1, TimeUnit.SECONDS)
+        ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 1000, TimeUnit.MILLISECONDS)
     }
 
     private fun settingsChanged() {
@@ -279,6 +285,46 @@ class LSPProcessHolder(val project: Project) : Disposable {
         }
     }
 
+    private fun lspRagStatusSync() {
+        try {
+            if (!isWorking) {
+                ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 5000, TimeUnit.MILLISECONDS)
+                return
+            }
+            val ragStatus = getRagStatus()
+            if (ragStatus == null) {
+                ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 5000, TimeUnit.MILLISECONDS)
+                return
+            }
+            if (ragStatus != ragStatusCache) {
+                ragStatusCache = ragStatus
+                project.messageBus.syncPublisher(LSPProcessHolderChangedNotifier.TOPIC).ragStatusChanged(ragStatusCache!!)
+            }
+
+            if (ragStatus.ast != null && ragStatus.ast.astMaxFilesHit) {
+                ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 5000, TimeUnit.MILLISECONDS)
+                return
+            }
+            if (ragStatus.vecdb != null && ragStatus.vecdb.vecdbMaxFilesHit) {
+                ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 5000, TimeUnit.MILLISECONDS)
+                return
+            }
+
+            if ((ragStatus.ast != null && listOf("starting", "parsing", "indexing").contains(ragStatus.ast.state))
+                || (ragStatus.vecdb != null && listOf("starting", "parsing").contains(ragStatus.vecdb.state))
+            ) {
+                logger.info("ast or vecdb is still indexing")
+                ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 700, TimeUnit.MILLISECONDS)
+            } else {
+                logger.info("ast and vecdb status complete, slowdown poll")
+                ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 5000, TimeUnit.MILLISECONDS)
+            }
+        } catch (e: Exception) {
+            ragStatusCheckerScheduler.schedule({ lspRagStatusSync() }, 5000, TimeUnit.MILLISECONDS)
+        }
+    }
+
+
     private fun safeTerminate() {
         InferenceGlobalContext.connection.get(
             URI(
@@ -303,6 +349,7 @@ class LSPProcessHolder(val project: Project) : Disposable {
     }
 
     override fun dispose() {
+        ragStatusCheckerScheduler.shutdown()
         terminate()
         healthCheckerScheduler.shutdown()
         loggerScheduler.shutdown()
